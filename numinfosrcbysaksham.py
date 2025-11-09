@@ -1,4 +1,4 @@
-# numtoinfo.py
+# numtoinfo.py 
 """
 Real-style API (single developer field):
   - Endpoint: GET /fetch?key=<API_KEY>&num=<10-digit-number>
@@ -9,9 +9,13 @@ Real-style API (single developer field):
   - Compact JSON (no pretty spacing)
   - Proper HTTP status codes and error messages
 
-Upstream request now emulates the provided curl: form field "message", many headers
-(including sec-ch-ua*), Accept-Encoding with zstd, Origin/Referer, Cookie support,
-and includes ?i=1 on the upstream URL.
+Upstream request now exactly matches the provided curl: 
+  - New target URL: https://hostzo.rf.gd/hacker.php?i=1
+  - Form field "message"
+  - Exact headers from curl including sec-ch-ua*, Accept-Encoding with zstd
+  - Origin/Referer set to https://hostzo.rf.gd
+  - Cookie support with __test
+  - HTTP/1.1
 """
 from flask import Flask, request, Response
 import requests, re, html, binascii, json, logging
@@ -24,27 +28,24 @@ logging.basicConfig(level=logging.INFO)
 
 # === CONFIG ===
 API_KEY = "paidkey"        # change this when you want a new key
-# <-- Updated to the curl target from your example. Keep/change as needed.
-TARGET_URL = "https://hostzo.ct.ws/uploads/32288f2ab34dde64a97e0c2fbf8d8b7d/web_746f.php?i=1"
+TARGET_URL = "https://hostzo.rf.gd/hacker.php?i=1"  # Updated to match curl
 SOURCE_NAME = "Saksham"        # developer name shown only once (top-level)
 REQUEST_TIMEOUT = 30
 # ==============
 
-# Base headers (will be merged/overridden to emulate curl more closely)
+# Exact headers from curl command
 BASE_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36",
-    "Accept-Language": "en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,hi;q=0.6",
-    # Note: Accept-Encoding will be set to include zstd to match the curl example
+    "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36",
     "Accept-Encoding": "gzip, deflate, br, zstd",
-    # The following sec-ch-* and fetch metadata are included to mirror the curl
     "sec-ch-ua-platform": '"Android"',
-    'sec-ch-ua': '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
+    "sec-ch-ua": '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
     "sec-ch-ua-mobile": "?1",
-    "Origin": "https://hostzo.ct.ws",
+    "Origin": "https://hostzo.rf.gd",
     "Sec-Fetch-Site": "same-origin",
     "Sec-Fetch-Mode": "cors",
     "Sec-Fetch-Dest": "empty",
-    # Keep Connection header (requests default is HTTP/1.1)
+    "Referer": "https://hostzo.rf.gd/hacker.php?i=1",
+    "Accept-Language": "en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
     "Connection": "keep-alive",
 }
 
@@ -104,21 +105,23 @@ def make_json_response(payload_dict, status=200):
 def upstream_post_number(num, cookie_value=None):
     """
     Perform the upstream POST exactly as the curl:
+      - URL: https://hostzo.rf.gd/hacker.php?i=1
       - form field 'message' with the phone number
-      - includes many headers (sec-ch-*, Origin, Referer, Accept-Encoding with zstd)
+      - exact headers from curl including all sec-ch-* headers
       - includes Cookie header if cookie_value provided
+      - uses HTTP/1.1
     Returns the requests.Response object or raises.
     """
     headers = dict(BASE_HEADERS)
-    # Add Referer matching curl example
-    headers["Referer"] = "https://hostzo.ct.ws/uploads/32288f2ab34dde64a97e0c2fbf8d8b7d/web_746f.php?i=1"
-    # If cookie_value passed in, set Cookie header to include __test (and optional user_id if known)
+    
+    # If cookie_value passed in, set Cookie header
     if cookie_value:
         headers["Cookie"] = cookie_value
-    # The curl used --http1.1; requests uses HTTP/1.1 by default.
-    # The body is multipart/form-data with field 'message'
+    
+    # The body is multipart/form-data with field 'message' exactly like curl -F
     files = {"message": (None, num)}
-    # Use POST
+    
+    # Use POST with HTTP/1.1 (requests uses HTTP/1.1 by default)
     resp = requests.post(TARGET_URL, headers=headers, files=files, timeout=REQUEST_TIMEOUT)
     return resp
 
@@ -151,7 +154,7 @@ def fetch():
         if not cookie:
             logging.warning("JS challenge present and not solvable (no cookie extracted)")
             return make_json_response({"ok": False, "error": "JS challenge not solvable."}, status=502)
-        # Build cookie header same format as curl example (if you also have user_id you can include it)
+        # Build cookie header with __test value
         cookie_header_value = f"__test={cookie}"
         try:
             resp = upstream_post_number(num, cookie_value=cookie_header_value)
