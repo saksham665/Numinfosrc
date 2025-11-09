@@ -23,7 +23,7 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 # === CONFIG ===
-API_KEY = "paidkeyy"        # change this when you want a new key
+API_KEY = "paidkey"        # change this when you want a new key
 # <-- Updated to the curl target from your example. Keep/change as needed.
 TARGET_URL = "https://hostzo.ct.ws/uploads/32288f2ab34dde64a97e0c2fbf8d8b7d/web_746f.php?i=1"
 SOURCE_NAME = "Saksham"        # developer name shown only once (top-level)
