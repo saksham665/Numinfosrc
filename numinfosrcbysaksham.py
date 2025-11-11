@@ -27,7 +27,7 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 # === CONFIG ===
-API_KEY = "paidkey"        # change this when you want a new key
+API_KEY = "trialkey"        # change this when you want a new key
 TARGET_URL = "https://hostzo.rf.gd/hacker.php?i=1"  # Updated to match curl
 SOURCE_NAME = "Saksham"        # developer name shown only once (top-level)
 REQUEST_TIMEOUT = 30
